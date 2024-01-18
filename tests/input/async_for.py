@@ -17,12 +17,12 @@ async def time_for_some_fun():
             print('something')
             break
 
-        for i in regular_for:
+        for _ in regular_for:
             var1 = var2 + var3
             async for x1 in print:
                 print('test LOAD_GLOBAL')
                 async for x2 in inner:
-                    for x3 in regular:
+                    for _ in regular:
                         async for x4 in inner2:
                             async for x5 in inner3:
                                 async for x6 in inner4:
@@ -34,7 +34,7 @@ async def time_for_some_fun():
     async for x4 in inner2:
         async for x5 in inner3:
             pass
-        
+
     print('outside loop')
 
 async def tryBlocks():

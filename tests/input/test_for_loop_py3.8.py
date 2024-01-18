@@ -11,9 +11,7 @@ See http://www.goebel-consult.de/decompyle/ for download and
 for further information
 """
 
-if 1 == 1:
-    print('block1')
-if 1 == 1:
-    for a in 'foo':
-        print('block2')
-return None
+
+print('block1')
+for _ in 'foo':
+    print('block2')

@@ -8,10 +8,10 @@ See http://www.goebel-consult.de/decompyle/ for download and
 for further information
 """
 
-for term in args:
+
+for _ in args:
     try:
         print
         continue
-        print
     except:
         pass

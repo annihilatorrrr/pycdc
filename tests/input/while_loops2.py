@@ -94,16 +94,13 @@ while i > 2:
 
 sys.stderr.write('\x1b[10;%dH' % (2 + inner_l))
 
-i = 10
-while i <= 15:
+for _ in range(10, 16):
     j = 2 + inner_l
     while j < inner_r - 1:
         sys.stderr.write(' ')
         j += 1
     sys.stderr.write('\x1b[1B')
     sys.stderr.write('\x1b[58D')
-    i += 1
-
 try:
     input('')
 except SyntaxError:

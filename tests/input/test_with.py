@@ -20,11 +20,7 @@ with open(__file__) as f:
 with open(__file__) as f:
     result = None
     try:
-        data = f.read()
-        if data:
-            result = data
-        else:
-            result = ""
+        result = data if (data := f.read()) else ""
     except:
         result = "exception"
     else:

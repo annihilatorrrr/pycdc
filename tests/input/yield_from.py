@@ -1,10 +1,8 @@
 def gen10():
-    for i in range(10):
-        yield i
+    yield from range(10)
 
 def gen20():
-    for i in range(10, 20):
-        yield i
+    yield from range(10, 20)
 
 def generator():
     yield from gen10()

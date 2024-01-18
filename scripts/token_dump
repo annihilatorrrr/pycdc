@@ -25,9 +25,7 @@ class PyToken:
             return '<INDENT>'
         if self.type == PyToken.OUTDENT:
             return '<OUTDENT>'
-        if self.type == PyToken.ENDLINE:
-            return '<EOL>'
-        return str(self.type)
+        return '<EOL>' if self.type == PyToken.ENDLINE else str(self.type)
 
     def __eq__(self, other):
         return self.type == other.type
@@ -44,9 +42,7 @@ class WordToken(PyToken):
         return self.word
 
     def __eq__(self, other):
-        if not super().__eq__(other):
-            return False
-        return self.word == other.word
+        return False if not super().__eq__(other) else self.word == other.word
 
 
 class IntToken(PyToken):
@@ -65,9 +61,7 @@ class IntToken(PyToken):
         return str(self.value)
 
     def __eq__(self, other):
-        if not super().__eq__(other):
-            return False
-        return self.value == other.value
+        return False if not super().__eq__(other) else self.value == other.value
 
 
 class FloatToken(PyToken):
@@ -79,10 +73,7 @@ class FloatToken(PyToken):
         return str(self.value)
 
     def __eq__(self, other):
-        if not super().__eq__(other):
-            return False
-        # TODO: Might need some fuzz
-        return self.value == other.value
+        return False if not super().__eq__(other) else self.value == other.value
 
 
 class StringToken(PyToken):
@@ -98,7 +89,7 @@ class StringToken(PyToken):
                               .replace('\n', '\\n').replace('\r', '\\r')
 
     def __str__(self):
-        return "{}'{}'".format(self.prefix, self.content)
+        return f"{self.prefix}'{self.content}'"
 
     def __eq__(self, other):
         if not super().__eq__(other):
@@ -124,10 +115,14 @@ SYMBOLIC_TOKENS = (
     '(', ')', '{', '}', '[', ']',
 )
 def symbolic_token(line, n_line):
-    for tok in SYMBOLIC_TOKENS:
-        if line.startswith(tok):
-            return PyToken(tok, n_line)
-    return None
+    return next(
+        (
+            PyToken(tok, n_line)
+            for tok in SYMBOLIC_TOKENS
+            if line.startswith(tok)
+        ),
+        None,
+    )
 
 
 def string_token(line, n_line, pysrc):
@@ -158,7 +153,7 @@ def string_token(line, n_line, pysrc):
         n_line += 1
         start = 0
         if not line:
-            raise RuntimeError('Reached EOF while looking for {}'.format(repr(quotes)))
+            raise RuntimeError(f'Reached EOF while looking for {repr(quotes)}')
 
     token = StringToken(prefix, content, n_line)
     token.rem_line = line[end + len(quotes):]
@@ -181,7 +176,7 @@ def read_tokens(pysrc):
             continue
 
         # Look for indentation changes
-        if len(context_stack) == 0:
+        if not context_stack:
             indent = len(line) - len(line.lstrip())
             if indent > indent_stack[-1]:
                 indent_stack.append(indent)
@@ -190,7 +185,7 @@ def read_tokens(pysrc):
                 indent_stack.pop()
                 yield PyToken(PyToken.OUTDENT, n_line)
             if indent != indent_stack[-1]:
-                raise RuntimeError('Incorrect indentation on line {}'.format(n_line))
+                raise RuntimeError(f'Incorrect indentation on line {n_line}')
 
         while True:
             line = line.lstrip()
@@ -200,54 +195,49 @@ def read_tokens(pysrc):
                 # The rest of this line is a comment
                 break
 
-            token = symbolic_token(line, n_line)
-            if token:
+            if token := symbolic_token(line, n_line):
                 if token.type in {'(', '{', '['}:
                     context_stack.append(token.type)
                 elif token.type == ')':
-                    if len(context_stack) == 0 or context_stack[-1] != '(':
-                        raise RuntimeError('Mismatched token at {} on line {}'.format(line, n_line))
+                    if not context_stack or context_stack[-1] != '(':
+                        raise RuntimeError(f'Mismatched token at {line} on line {n_line}')
                     context_stack.pop()
                 elif token.type == '}':
-                    if len(context_stack) == 0 or context_stack[-1] != '{':
-                        raise RuntimeError('Mismatched token at {} on line {}'.format(line, n_line))
+                    if not context_stack or context_stack[-1] != '{':
+                        raise RuntimeError(f'Mismatched token at {line} on line {n_line}')
                     context_stack.pop()
                 elif token.type == ']':
-                    if len(context_stack) == 0 or context_stack[-1] != '[':
-                        raise RuntimeError('Mismatched token at {} on line {}'.format(line, n_line))
+                    if not context_stack or context_stack[-1] != '[':
+                        raise RuntimeError(f'Mismatched token at {line} on line {n_line}')
                     context_stack.pop()
                 yield token
                 line = line[len(token.type):]
                 continue
 
-            match = RE_FLOAT.match(line)
-            if match:
+            if match := RE_FLOAT.match(line):
                 yield FloatToken(match.group(), n_line)
                 line = line[match.end():]
                 continue
 
-            match = RE_INT.match(line)
-            if match:
+            if match := RE_INT.match(line):
                 yield IntToken(match.group(), n_line)
                 line = line[match.end():]
                 continue
 
-            token = string_token(line, n_line, pysrc)
-            if token:
+            if token := string_token(line, n_line, pysrc):
                 line = token.rem_line
                 n_line = token.end_line
                 yield token
                 continue
 
-            match = RE_WORD.match(line)
-            if match:
+            if match := RE_WORD.match(line):
                 yield WordToken(match.group(), n_line)
                 line = line[match.end():]
                 continue
 
-            raise RuntimeError('Error: Unrecognized tokens: "{}" at line {}'.format(line, n_line))
+            raise RuntimeError(f'Error: Unrecognized tokens: "{line}" at line {n_line}')
 
-        if len(context_stack) == 0:
+        if not context_stack:
             yield PyToken(PyToken.ENDLINE, n_line)
 
 
@@ -256,11 +246,7 @@ if __name__ == '__main__':
         print('Usage: token_dump <file>.py')
         sys.exit(0)
 
-    if len(sys.argv) >= 2:
-        pysrc = open(sys.argv[1], 'r')
-    else:
-        pysrc = sys.stdin
-
+    pysrc = open(sys.argv[1], 'r') if len(sys.argv) >= 2 else sys.stdin
     for tok in read_tokens(pysrc):
         if tok.type in {PyToken.ENDLINE, PyToken.INDENT, PyToken.OUTDENT}:
             print(tok)

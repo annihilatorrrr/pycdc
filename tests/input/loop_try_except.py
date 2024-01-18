@@ -5,7 +5,7 @@ async def myFunc():
         except MyException:
             running = False
 
-for b in c:
+for _ in c:
     stuff
     try:
         STUFF
